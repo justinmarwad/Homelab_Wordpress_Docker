@@ -1,0 +1,60 @@
+version: '3'
+
+services:
+
+    ## WORDPRESS INSTANCE ## 
+    wordpress:
+        image: wordpress
+        links:
+            - mariadb:mysql
+        environment:
+            - WORDPRESS_DB_PASSWORD=${WORDPRESS_DB_PASSWORD}
+            - WORDPRESS_DB_USER=root
+        ports:
+            - "9090:80"
+        volumes:
+            - ./data/wordpress:/var/www/html
+        
+        ## CREATE HTTPS PROXY ##
+        networks: 
+            # - caddy # uncomment this if you enable the Caddy reverse proxy
+            - database
+        labels: 
+            caddy: ${DOMAIN}
+            caddy.reverse_proxy: "{{ upstreams }}"
+        
+    
+    ## DATABASE ##
+    mariadb:
+        image: mariadb
+        environment:
+            - MYSQL_ROOT_PASSWORD=${WORDPRESS_DB_PASSWORD}
+            - MYSQL_DATABASE=wordpress
+        volumes:
+            - ./data/database:/var/lib/mysql
+        networks:
+            - database 
+
+
+### UNCOMMENT TO ENABLE PUBLIC CADDY HTTPS PROXY ###
+#     ## Setup Global Caddy ##
+#     caddy:
+#         image: lucaslorentz/caddy-docker-proxy:ci-alpine
+#         restart: always
+#         ports:
+#             - 80:80
+#             - 443:443
+#         environment:
+#             - CADDY_INGRESS_NETWORKS=caddy
+#         networks:
+#             - caddy
+#         volumes:
+#             - /var/run/docker.sock:/var/run/docker.sock
+#             - ./data/caddy:/data
+
+  
+# ## Add External Caddy Network for Public HTTPS Proxy ## 
+# networks:
+#     caddy:
+#         external: true
+#     database: 
